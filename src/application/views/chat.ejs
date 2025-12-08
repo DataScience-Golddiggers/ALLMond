@@ -1,16 +1,18 @@
 <%- include('partials/header') %>
 
-<h1>Chat con l'Assistente</h1>
+<div class="container mt-5">
+    <h1>Chat con l'Assistente</h1>
 
-<div class="chat-container d-flex flex-column" id="chatContainer">
-    <div class="message bot-message">
-        Ciao! Come posso aiutarti oggi riguardo l'UnivPM?
+    <div class="card shadow chat-container d-flex flex-column mt-2 mb-5" style="max-height:25rem;" id="chatContainer">
+        <div class="message bot-message">
+            Ciao! Come posso aiutarti oggi riguardo l'UnivPM?
+        </div>
     </div>
-</div>
 
-<div class="input-group mt-3">
-    <input type="text" id="userInput" class="form-control" placeholder="Scrivi la tua domanda..." aria-label="Domanda">
-    <button class="btn btn-primary" type="button" id="sendBtn">Invia</button>
+    <div class="input-group mt-4 mb-2 shadow">
+        <input type="text" id="userInput" class="form-control" placeholder="Scrivi la tua domanda..." aria-label="Domanda">
+        <button class="btn btn-outline-primary" type="button" id="sendBtn">Invia</button>
+    </div>
 </div>
 
 <script>

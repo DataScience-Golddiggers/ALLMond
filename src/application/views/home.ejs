@@ -1,16 +1,27 @@
 <%- include('partials/header') %>
 
-<div class="jumbotron">
-    <h1 class="display-2">Benvenuto in ALLMond!</h1>
-    <div class="card text-bg-light shadow mt-4 p-4 d-flex">
-        <p class="lead">Questo strumento è semplice e buono come una mandorla. Utilizza l'Intelligenza Artificiale per rispondere alle tue domande sull'Università Politecnica delle Marche.</p>
-        <hr class="my-4">
-        <p>Il sistema cerca informazioni aggiornate dal sito web dell'ateneo e fornisce risposte contestualizzate.</p>
+<style>
+    body { padding-top: 0 !important; }
+    .navbar { background-color: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(5px); }
+</style>
+
+<div class="d-flex flex-column align-items-center w-100">
+    
+    <div class="bg-image d-flex align-items-center justify-content-center w-100 mb-5">
+        <h1 class="display-2 text-white text-center" style="text-shadow: 2px 2px 4px #000000;">Benvenuto in ALLMond!</h1>
     </div>
     
-    <div class="mt-4 text-center">
-        <a class="btn btn-outline-primary btn-lg shadow mt-5 me-2" href="/chat" role="button">Inizia a Chattare</a>
-        <a class="btn btn-outline-secondary btn-lg shadow mt-5 ms-2" href="/about" role="button">Chi siamo</a>
+    <div class="container d-flex flex-column align-items-center">
+        <div class="card text-bg-light shadow p-4" style="max-width: 50rem;">
+            <p class="lead">Questo strumento è semplice e buono come una mandorla. Utilizza l'Intelligenza Artificiale per rispondere alle tue domande sull'Università Politecnica delle Marche.</p>
+            <hr class="my-4">
+            <p>Il sistema cerca informazioni aggiornate dal sito web dell'ateneo e fornisce risposte contestualizzate.</p>
+        </div>
+        
+        <div class="mt-5 text-center mb-5">
+            <a class="btn btn-outline-primary btn-lg shadow me-2" href="/chat" role="button">Inizia a Chattare</a>
+            <a class="btn btn-outline-success btn-lg shadow ms-2" href="/about" role="button">Chi siamo</a>
+        </div>
     </div>
 
 </div>

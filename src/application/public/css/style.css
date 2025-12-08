@@ -1,4 +1,48 @@
 /* Custom styles */
-body {
-    background-color: #f8f9fa;
+html {
+    height: 100%;
 }
+
+body {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+}
+
+.bg-image {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/bgv1.jpg');
+    height: 20rem;
+    width: 100%;
+    background-size: cover;
+    background-position: center;
+}
+
+.footer-bg {
+    position: relative;
+    height: 5rem;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-top: auto;
+}
+
+.footer-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/bgv1.jpg');
+    background-size: cover;
+    background-position: center;
+    filter: blur(8px);
+    transform: scale(1.1);
+    z-index: -1;
+}
+
+

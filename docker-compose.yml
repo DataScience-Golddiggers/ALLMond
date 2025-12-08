@@ -49,23 +49,23 @@ services:
     networks:
       - app-network
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ./models:/root/.ollama
-      - ./scripts/ollama_entrypoint.sh:/entrypoint.sh
-    entrypoint: ["/entrypoint.sh"]
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    networks:
-      - app-network
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ./models:/root/.ollama
+  #     - ./scripts/ollama_entrypoint.sh:/entrypoint.sh
+  #   entrypoint: ["/entrypoint.sh"]
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   networks:
+  #     - app-network
 
   ngrok:
     image: ngrok/ngrok:latest
