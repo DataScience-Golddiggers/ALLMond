@@ -20,7 +20,7 @@ __pycache__/
 *.pth
 *.ckpt
 *.ipynb_checkpoints/
-data/raw/*
+
 data/processed/*
 data/cleaned/*
 !data/raw/.gitkeep
