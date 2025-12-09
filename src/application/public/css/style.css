@@ -1,21 +1,39 @@
 /* Custom styles */
+:root {
+    --bg-color: #0d1117;
+    --text-main: #c9d1d9;
+    --text-muted: #8b949e;
+    --card-bg: #161b22;
+    --card-border: #30363d;
+    --primary-color: #58a6ff;
+    --success-color: #238636;
+    --success-hover: #2ea043;
+}
+
 html {
     height: 100%;
 }
 
 body {
     min-height: 100vh;
-    background-color: #f8f9fa;
+    background-color: var(--bg-color);
+    color: var(--text-main);
     display: flex;
     flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff;
 }
 
 .bg-image {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/bgv1.jpg');
+    background-image: linear-gradient(rgba(13, 17, 23, 0.7), rgba(13, 17, 23, 0.7)), url('/images/bgv1.jpg');
     height: 20rem;
     width: 100%;
     background-size: cover;
     background-position: center;
+    border-bottom: 1px solid var(--card-border);
 }
 
 .footer-bg {
@@ -26,8 +44,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--text-muted);
     margin-top: auto;
+    border-top: 1px solid var(--card-border);
+    background-color: var(--card-bg);
 }
 
 .footer-bg::before {
@@ -37,12 +57,58 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/bgv1.jpg');
+    background-image: linear-gradient(rgba(13, 17, 23, 0.8), rgba(13, 17, 23, 0.8)), url('/images/bgv1.jpg');
     background-size: cover;
     background-position: center;
     filter: blur(8px);
     transform: scale(1.1);
     z-index: -1;
+}
+
+/* Card Overrides */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-main);
+}
+
+/* Override Bootstrap utility if present */
+.text-bg-light {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+}
+
+
+
+/* Chat Interface Overrides */
+.chat-container {
+    background-color: var(--bg-color) !important;
+    border-color: var(--card-border) !important;
+}
+
+.bot-message {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--card-border);
+}
+
+.user-message {
+    background-color: #1f6feb !important;
+    color: #ffffff !important;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #161b22 !important;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.navbar-brand, .nav-link {
+    color: var(--text-main) !important;
+}
+
+.nav-link:hover {
+    color: #ffffff !important;
 }
 
 
