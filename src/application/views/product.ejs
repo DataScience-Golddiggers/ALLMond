@@ -1,0 +1,155 @@
+<%- include('partials/header') %>
+
+<div class="container mt-5 pt-5">
+    <h1 class="mb-4 text-center">Analisi Prodotto eBay</h1>
+    
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form id="productForm">
+                        <div class="mb-3">
+                            <label for="productUrl" class="form-label">Inserisci URL eBay</label>
+                            <input type="url" class="form-control" id="productUrl" placeholder="https://www.ebay.it/itm/..." required>
+                            <div class="form-text">Supporta link ebay.it e ebay.com</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" id="analyzeBtn">Analizza Prodotto</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading" class="text-center d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Analisi in corso... (potrebbe richiedere qualche minuto)</p>
+    </div>
+
+    <div id="resultArea" class="d-none">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title" id="prodTitle"></h2>
+                        <h4 class="text-primary" id="prodPrice"></h4>
+                        <hr>
+                        <h5>Riassunto Descrizione</h5>
+                        <p id="prodSummary"></p>
+                        <hr>
+                        <h5>Descrizione Completa</h5>
+                        <div id="prodDesc" style="max-height: 200px; overflow-y: auto; font-size: 0.9em;" class="text-muted"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        Sentiment Analysis
+                    </div>
+                    <div class="card-body">
+                        <canvas id="sentimentChart"></canvas>
+                        <div class="mt-3" id="sentimentBreakdown"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header">
+                Recensioni Analizzate
+            </div>
+            <ul class="list-group list-group-flush" id="reviewsList">
+            </ul>
+        </div>
+    </div>
+    
+    <div id="errorAlert" class="alert alert-danger d-none mt-3" role="alert"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const form = document.getElementById('productForm');
+    const loading = document.getElementById('loading');
+    const resultArea = document.getElementById('resultArea');
+    const errorAlert = document.getElementById('errorAlert');
+    let chart = null;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = document.getElementById('productUrl').value;
+        
+        loading.classList.remove('d-none');
+        resultArea.classList.add('d-none');
+        errorAlert.classList.add('d-none');
+        document.getElementById('analyzeBtn').disabled = true;
+
+        try {
+            const response = await fetch('/api/product', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Errore durante l\'analisi');
+            }
+
+            displayResult(data);
+        } catch (error) {
+            errorAlert.textContent = error.message;
+            errorAlert.classList.remove('d-none');
+        } finally {
+            loading.classList.add('d-none');
+            document.getElementById('analyzeBtn').disabled = false;
+        }
+    });
+
+    function displayResult(data) {
+        document.getElementById('prodTitle').textContent = data.title;
+        document.getElementById('prodPrice').textContent = data.price;
+        document.getElementById('prodSummary').textContent = data.summary;
+        document.getElementById('prodDesc').textContent = data.description;
+
+        // Reviews
+        const reviewsList = document.getElementById('reviewsList');
+        reviewsList.innerHTML = '';
+        if (data.reviews && data.reviews.length > 0) {
+            data.reviews.forEach(r => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                const badgeClass = r.sentiment === 'Positive' ? 'bg-success' : (r.sentiment === 'Negative' ? 'bg-danger' : 'bg-secondary');
+                li.innerHTML = `
+                    <span class="badge ${badgeClass} float-end">${r.sentiment} (${(r.confidence * 100).toFixed(1)}%)</span>
+                    <p class="mb-0">${r.text}</p>
+                `;
+                reviewsList.appendChild(li);
+            });
+        } else {
+            reviewsList.innerHTML = '<li class="list-group-item text-muted">Nessuna recensione trovata.</li>';
+        }
+
+        // Chart
+        const ctx = document.getElementById('sentimentChart').getContext('2d');
+        if (chart) chart.destroy();
+        
+        const breakdown = data.sentiment_breakdown;
+        chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Neutral', 'Negative'],
+                datasets: [{
+                    data: [breakdown.Positive || 0, breakdown.Neutral || 0, breakdown.Negative || 0],
+                    backgroundColor: ['#198754', '#6c757d', '#dc3545']
+                }]
+            }
+        });
+
+        resultArea.classList.remove('d-none');
+    }
+</script>
+
+<%- include('partials/footer') %>

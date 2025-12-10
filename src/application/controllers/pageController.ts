@@ -11,3 +11,7 @@ export const renderChat = (req: Request, res: Response) => {
 export const renderAbout = (req: Request, res: Response) => {
     res.render('about', { title: 'About Us' });
 };
+
+export const renderProduct = (req: Request, res: Response) => {
+    res.render('product', { title: 'Product Analysis' });
+};

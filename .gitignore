@@ -29,4 +29,5 @@ data/cleaned/*
 models/*
 !models/.gitkeep
 .pytest_cache/
+postgres_data/
 

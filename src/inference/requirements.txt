@@ -16,3 +16,6 @@ wordcloud
 langchain
 langchain-community
 langchain-ollama
+sqlalchemy
+asyncpg
+psycopg2-binary

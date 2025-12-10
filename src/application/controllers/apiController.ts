@@ -28,3 +28,25 @@ export const askQuestion = async (req: Request, res: Response) => {
         isProcessing = false;
     }
 };
+
+export const getProductInfo = async (req: Request, res: Response) => {
+    const { url } = req.body;
+    
+    if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+    }
+    
+    // Validate eBay URL
+    const ebayRegex = /ebay\.(com|it)\/itm\//;
+    if (!ebayRegex.test(url)) {
+        return res.status(400).json({ error: 'Invalid eBay URL. Must contain ebay.com/itm/ or ebay.it/itm/' });
+    }
+    
+    try {
+        const response = await axios.post(`${AI_SERVICE_URL}/api/product`, { url });
+        res.json(response.data);
+    } catch (error: any) {
+        console.error('Error calling AI Service for product:', error.message);
+        res.status(500).json({ error: 'Failed to get product info.' });
+    }
+};

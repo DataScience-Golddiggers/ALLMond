@@ -22,8 +22,10 @@ app.use('/js', express.static(path.join(process.cwd(), 'node_modules/bootstrap/d
 app.get('/', pageController.renderHome);
 app.get('/chat', pageController.renderChat);
 app.get('/about', pageController.renderAbout);
+app.get('/product', pageController.renderProduct);
 
 app.post('/api/ask', apiController.askQuestion);
+app.post('/api/product', apiController.getProductInfo);
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

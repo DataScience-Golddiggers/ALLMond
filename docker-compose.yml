@@ -38,46 +38,49 @@ services:
     environment:
       - OLLAMA_URL=${OLLAMA_URL}
       - CRAWLER_URL=http://crawler:8001
+      - SENTIMENT_SERVICE_URL=http://sentiment-service:8002
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-allmond}
     volumes:
       - ./models:/app/models
       - ./utils:/app/utils
       - ./scripts:/app/scripts
       - ./data:/app/data
       - ./src:/app/src
-    # depends_on:
-    #   - ollama
-    networks:
-      - app-network
-
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ./models:/root/.ollama
-      - ./scripts/ollama_entrypoint.sh:/entrypoint.sh
-    entrypoint: ["/entrypoint.sh"]
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    networks:
-      - app-network
-
-  ngrok:
-    image: ngrok/ngrok:latest
-    ports:
-      - "4040:4040"
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    command: "http webapp:3000"
     depends_on:
-      - webapp
+      - postgres
+      - sentiment-service
     networks:
       - app-network
+
+  sentiment-service:
+    build:
+      context: src/sentiment
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./models:/app/models
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-allmond}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
 
 networks:
   app-network:

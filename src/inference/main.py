@@ -1,10 +1,12 @@
 import os
 import sys
-from typing import Optional, List
-from fastapi import FastAPI, HTTPException
+from typing import Optional, List, Dict, Any
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 import joblib
 import httpx
+import asyncio
+from datetime import datetime, timedelta
 # LangChain imports
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
@@ -14,13 +16,18 @@ from langchain_core.runnables import RunnablePassthrough
 # Add /app to path to import utils
 sys.path.append("/app")
 from utils.text_preprocessing import TextPreprocessor
-
+from utils.database import init_db, get_db, Product, Review
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
 
 app = FastAPI()
 
 # Configuration
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 CRAWLER_URL = os.getenv("CRAWLER_URL", "http://crawler:8001")
+SENTIMENT_SERVICE_URL = os.getenv("SENTIMENT_SERVICE_URL", "http://sentiment-service:8002")
+CACHE_TTL_HOURS = int(os.getenv("CACHE_TTL_HOURS", 24))
 MODEL_PATH = "/app/models/logistic_regression.pkl"
 VECTORIZER_PATH = "/app/models/vectorizer.pkl"
 
@@ -37,6 +44,18 @@ class AskResponse(BaseModel):
     relevant: bool
     context_used: bool
 
+class ProductRequest(BaseModel):
+    url: str
+
+class ProductResponse(BaseModel):
+    title: str
+    price: str
+    description: str
+    summary: str
+    reviews: List[dict]
+    sentiment_breakdown: dict
+    cached: bool
+
 # Global variables
 classifier = None
 vectorizer = None
@@ -48,6 +67,13 @@ llm_qa = None
 async def startup_event():
     global classifier, vectorizer, preprocessor, llm_summary, llm_qa
     
+    # Initialize DB
+    try:
+        await init_db()
+        print("Database initialized.")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+
     # 1. Load Scikit-Learn Models (Classification)
     try:
         if os.path.exists(MODEL_PATH) and os.path.exists(VECTORIZER_PATH):
@@ -140,6 +166,151 @@ async def crawl_content() -> str:
             traceback.print_exc()
             print(f"Crawler request failed completely: {e}")
             return ""
+
+async def summarize_description(text: str) -> str:
+    if not text: return ""
+    truncated = text[:5000]
+    template = """Summarize this product description focusing on features and specs: {text}"""
+    prompt = PromptTemplate.from_template(template)
+    chain = prompt | llm_summary | StrOutputParser()
+    try:
+        return await chain.ainvoke({"text": truncated})
+    except Exception as e:
+        print(f"Summarization error: {e}")
+        return text[:500] + "..."
+
+async def analyze_sentiment_remote(texts: List[str]) -> List[dict]:
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            response = await client.post(f"{SENTIMENT_SERVICE_URL}/analyze", json={"texts": texts})
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Sentiment service error: {response.text}")
+                return []
+        except Exception as e:
+            print(f"Sentiment service connection error: {e}")
+            return []
+
+@app.post("/api/product", response_model=ProductResponse)
+async def get_product_info(request: ProductRequest):
+    url = request.url
+    
+    # 1. Check DB
+    async for session in get_db():
+        stmt = select(Product).where(Product.ebay_url == url)
+        result = await session.execute(stmt)
+        product = result.scalars().first()
+        
+        if product:
+            # Check TTL
+            if product.crawled_at.replace(tzinfo=None) > datetime.now() - timedelta(hours=CACHE_TTL_HOURS):
+                # Fetch reviews
+                stmt_rev = select(Review).where(Review.product_id == product.id)
+                res_rev = await session.execute(stmt_rev)
+                reviews = res_rev.scalars().all()
+                
+                reviews_data = [
+                    {"text": r.text, "sentiment": r.sentiment, "confidence": r.confidence} 
+                    for r in reviews
+                ]
+                
+                # Calculate breakdown
+                breakdown = {"Positive": 0, "Negative": 0, "Neutral": 0}
+                for r in reviews:
+                    if r.sentiment in breakdown:
+                        breakdown[r.sentiment] += 1
+                
+                return {
+                    "title": product.title,
+                    "price": product.price,
+                    "description": product.description,
+                    "summary": product.summary,
+                    "reviews": reviews_data,
+                    "sentiment_breakdown": breakdown,
+                    "cached": True
+                }
+            else:
+                # Expired, we will update it
+                pass
+
+    # 2. Crawl
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        crawl_res = await client.post(f"{CRAWLER_URL}/crawl/ebay", json={"url": url})
+        if crawl_res.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to crawl eBay product")
+        
+        data = crawl_res.json()
+        
+    # 3. Summarize & Sentiment (Parallel)
+    description = data.get("description", "")
+    reviews_text = data.get("reviews", [])
+    
+    # Summarize
+    summary_task = asyncio.create_task(summarize_description(description))
+    
+    # Sentiment
+    sentiment_task = asyncio.create_task(analyze_sentiment_remote(reviews_text)) if reviews_text else asyncio.create_task(asyncio.sleep(0, result=[]))
+    
+    summary, sentiment_results = await asyncio.gather(summary_task, sentiment_task)
+    
+    # 4. Save to DB
+    async for session in get_db():
+        # Check if exists (to update)
+        stmt = select(Product).where(Product.ebay_url == url)
+        result = await session.execute(stmt)
+        existing_product = result.scalars().first()
+        
+        if existing_product:
+            existing_product.title = data.get("title")
+            existing_product.price = data.get("price")
+            existing_product.description = description
+            existing_product.summary = summary
+            existing_product.crawled_at = datetime.now()
+            
+            # Delete old reviews
+            await session.execute(delete(Review).where(Review.product_id == existing_product.id))
+            
+            product_id = existing_product.id
+        else:
+            new_product = Product(
+                ebay_url=url,
+                title=data.get("title"),
+                price=data.get("price"),
+                description=description,
+                summary=summary
+            )
+            session.add(new_product)
+            await session.flush()
+            product_id = new_product.id
+            
+        # Add reviews
+        for res in sentiment_results:
+            new_review = Review(
+                product_id=product_id,
+                text=res['text'],
+                sentiment=res['sentiment'],
+                confidence=res['confidence']
+            )
+            session.add(new_review)
+            
+        await session.commit()
+        
+    # 5. Return
+    breakdown = {"Positive": 0, "Negative": 0, "Neutral": 0}
+    for r in sentiment_results:
+        if r['sentiment'] in breakdown:
+            breakdown[r['sentiment']] += 1
+            
+    return {
+        "title": data.get("title"),
+        "price": data.get("price"),
+        "description": description,
+        "summary": summary,
+        "reviews": sentiment_results,
+        "sentiment_breakdown": breakdown,
+        "cached": False
+    }
 
 @app.post("/ask", response_model=AskResponse)
 async def ask(request: AskRequest):
