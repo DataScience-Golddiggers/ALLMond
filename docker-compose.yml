@@ -57,13 +57,13 @@ services:
       - ./models:/root/.ollama
       - ./scripts/ollama_entrypoint.sh:/entrypoint.sh
     entrypoint: ["/entrypoint.sh"]
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # deploy:               # Uncomment this section if using NVIDIA GPUs
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
     networks:
       - app-network
 

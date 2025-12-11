@@ -1,11 +1,10 @@
-FROM python:3.10-slim
+FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
 
 WORKDIR /app
 
 COPY src/crawler/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install
-RUN playwright install-deps
 
 COPY src/crawler/ .
 # utils are mounted via docker-compose, but for build context we might need to copy if we weren't mounting. 
